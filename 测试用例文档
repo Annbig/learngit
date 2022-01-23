@@ -1,0 +1,29 @@
+1. 测试目的
+本次测试的功能为验证BS层向LC层发送数据的过程能够正确稳定的进行。在测试过程中，不关注BS层与LC层交互的机制。
+此次测试情况下BS层与LC层信息交互的机制为rpmsg协议、
+2. 测试背景
+测试模仿BS层向LC层发送数据包，BS层数据面的报文结构如下。
+IE/Group Name-Type and range-Semantics description
+msgType gt_u8 消息类型，0控制1数据
+segFlag gt_u8 分段标志，0数据不分段，1数据的第一个分段，2数据中间分段，3数据最后一个分段
+rsv[2]  gt_u8 保留
+bearerId gt_u16 0~65535
+len gt_u16 消息长度
+playload[] playload,长度可变
+其中：
+gt_u8 8位无符号整数————unsigned char
+gt_u16 16位无符号整数————unsigned int
+3. 测试思路
+测试过程中主要改变的字段内容为segFlag、bearerId、以及len字段，内容赋值为1~n个重复的10100101（0xA5）
+对于len字段：
+由于rpmsg最大可发送512B，所以在去除rpmsg头部字段以及防溢出的24字节字段的长度后，报文内容playload的长度len的范围是64B~472B。
+因此进行不间断的多轮发送，在每一轮发送中，会依次发送64B~472B长度的报文。
+对于segFlag和bearerId字段：
+在每一轮发送中，总共有（472-64）次发送，设定每64次为segFlag的变化周期。
+在这64次中，设定三部分测试
+testPart1——seg=0000 0000 0000 0000，bearerID随意
+testPart2——seg=123 1223 12223 122223 1222223，bearerId=0
+testPart3——seg=0123随机乱码，bearerId从0~65535随机（此处待定，由于bearerId是否能决定分段是同一个还不知道）
+4. 测试结果
+提示：字段解析、稳定接收
+
